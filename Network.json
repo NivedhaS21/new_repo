@@ -5,7 +5,7 @@
         "VPCName": {
             "Description": "Name of the VPC to be created",
             "Type": "String",
-            "Default": "VPC"
+            "Default": "tt-VPC"
         },
         "VPCCIDRBlock": {
             "Description": "CIDR block for the newly created VPC",
@@ -19,7 +19,8 @@
         },
         "PublicSubnet1Name": {
             "Type": "String",
-            "Description": "The name for the first public Subnet"
+            "Description": "The name for the first public Subnet",
+            "Default": "tt-pubsub1"
         },
         "PrivateSubnet1CIDR": {
             "Type": "String",
@@ -38,31 +39,38 @@
         },
         "PrivateSubnet1Name": {
             "Type": "String",
-            "Description": "The name for the first private Subnet"
+            "Description": "The name for the first private Subnet",
+            "Default": "tt-privatesub1"
         },
         "PrivateSubnet2Name": {
             "Type": "String",
-            "Description": "The name for the second private Subnet"
+            "Description": "The name for the second private Subnet",
+            "Default": "tt-privatesub2"
         },
         "PrivateSubnet3Name": {
             "Type": "String",
-            "Description": "The name for the third private Subnet"
+            "Description": "The name for the third private Subnet",
+            "Default": "tt-privatesub3"
         },
         "PublicRTName": {
             "Type": "String",
-            "Description": "The name for the public route table"
+            "Description": "The name for the public route table",
+            "Default": "tt-pubrt1"
         },
         "PrivateRTName": {
             "Type": "String",
-            "Description": "The name for theprivate route table"
+            "Description": "The name for theprivate route table",
+            "Default": "tt-privatert1"
         },
         "IGWName": {
             "Type": "String",
-            "Description": "The name for the Internet Gateway"
+            "Description": "The name for the Internet Gateway",
+            "Default": "tt-igw"
         },
         "NATGWName": {
             "Type": "String",
-            "Description": "The name for the NAT Gateway"
+            "Description": "The name for the NAT Gateway",
+            "Default": "tt-nat"
         }
     },
     "Resources": {

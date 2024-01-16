@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template to create Site-to-Site VPN Connection.
+
+Parameters:
+  CustomerGatewayName:
+    Description: The name of the customer gateway at your end of the VPN connection.
+    Type: String
+  CustomerGatewayIP:
+    Description: The IP of the customer gateway at your end of the VPN connection.
+    Type: String
+  # TransitGatewayId:
+  #   Description: The ID of the transit gateway associated with the VPN connection.
+  #   Type: String
+  VpnGatewayName:
+    Description: The name of the virtual private gateway at the AWS side of the VPN connection. You must specify either TransitGatewayId or VpnGatewayId, but not both
+    Type: String
+  VpnConnectionName:
+    Description: The name of the AWS VPN connection.
+    Type: String
+  DestinationCidrBlock:
+    Description: The CIDR block associated with the local subnet of the customer network.
+    Type: String
+  StaticRoutesOnly:
+    Description: If you are creating a VPN connection for a device that does not support Border Gateway Protocol (BGP), you must specify true.
+    Type: String
+
+Resources:
+  CustomerGateway:
+    Type: AWS::EC2::CustomerGateway
+    Properties:
+      Type: ipsec.1
+      DeviceName: !Ref CustomerGatewayName
+      # BgpAsn: 65534  # For devices that support BGP, the customer gateway's BGP ASN.Default: 65000
+      IpAddress: !Ref CustomerGatewayIP
+      Tags:
+        - Key: Name
+          Value: !Ref CustomerGatewayName
+  
+  VPNGateway:
+    Type: AWS::EC2::VPNGateway
+    Properties:
+    # AmazonSideAsn:      # The private Autonomous System Number (ASN) for the Amazon side of a BGP session.
+      Type: ipsec.1
+      Tags: 
+        - Key: Name
+          Value: !Ref VpnGatewayName
+        
+  VPNConnection:
+    Type: AWS::EC2::VPNConnection
+    Properties:
+      CustomerGatewayId: !Ref CustomerGateway
+      StaticRoutesOnly: !Ref StaticRoutesOnly  
+      Tags: 
+        - Key: Name
+          Value: !Ref VpnConnectionName
+      # TransitGatewayId: !Ref TransitGatewayId
+      Type: ipsec.1
+      VpnGatewayId: !Ref VPNGateway
+      # VpnTunnelOptionsSpecifications: 
+
+  VPNConnectionRoute: 
+    Type: AWS::EC2::VPNConnectionRoute
+    Properties: 
+      DestinationCidrBlock: !Ref DestinationCidrBlock
+      VpnConnectionId: 
+        !Ref VPNConnection
+     
+Outputs:
+  VPNConnectonId:
+    Description: Name of vpn connection.
+    Value: !Ref VPNConnection
+    Export:
+      Name: VPNConnectionId
+  VPNGatewayId:
+    Description: Name of vpn gateway.
+    Value: !Ref VPNGateway
+    Export:
+      Name: VpnGatewayId
+  CustomerGatewayId:
+    Description: Name of customer gateway
+    Value: !Ref CustomerGateway
+    Export:
+      Name: CustomerGatewayId

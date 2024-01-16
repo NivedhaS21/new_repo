@@ -1,0 +1,141 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Sample Cloud Formation template for AWS Lambda Function
+
+Parameters:
+  SourceMarket:
+    AllowedValues:
+      - Market1
+      - Market2
+    Default: Market2
+    Description: Source market
+    Type: String
+  EnvName:
+    AllowedValues:
+      - preprod
+      - dev
+      - pt
+      - prod
+    Default: preprod
+    Description: Type of the environment
+    Type: String
+  TechnicalOwner:
+    AllowedValues:
+      - mark
+      - clark
+    Default: mark
+    Description: Technical Owner
+    Type: String
+
+  Partition:
+    Description: Delimiter for partition
+    Type: String
+    Default: '-'
+
+  Runtime:
+    AllowedValues: [dotnet6 , dotnetcore1.0 , dotnetcore2.0 , dotnetcore2.1 , dotnetcore3.1 , go1.x , java11 ,
+      java8 , java8.al2 , nodejs , nodejs10.x , nodejs12.x , nodejs14.x , nodejs16.x , nodejs4.3 , nodejs4.3-edge , 
+      nodejs6.10 , nodejs8.10 , provided , provided.al2 , python2.7 , python3.6 , python3.7 , python3.8 , python3.9 , ruby2.5 , ruby2.7]
+    Default: nodejs16.x
+    Description: Runtime is required if the deployment package is a .zip file archive.
+    Type: String
+
+  MemorySize:
+    Default: 128
+    Type: Number
+    Description: amount of memory available to the function at runtime (MB).
+    MinValue: 128
+
+  PackageType:
+    Type: String
+    AllowedValues: [Image , Zip]
+    Default: Zip
+    Description:  type of deployment package.
+
+  ReservedConcurrentExecutions:
+    Description: The number of simultaneous executions to reserve for the function.
+    Type: Number
+    MinValue: 0
+
+  Timeout:
+    Description: The amount of time (in seconds) that Lambda allows a function to run before stopping it.
+    Type: Number
+    MinValue: 1
+    MaxValue: 900
+
+  LambdaHandlerPath:  
+    Type: String
+    Description: Path of a Lambda Handler. 
+    AllowedPattern: ^.*[^0-9]$
+    ConstraintDescription: Must end with non-numeric character.
+
+Resources:
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: lambda-role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+            - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        - arn:aws:iam::aws:policy/AmazonKinesisFullAccess
+      Path: /
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: lambda-function-${EnvName}
+      Description: LambdaFunction name
+      Runtime: !Ref Runtime
+      MemorySize: !Ref MemorySize
+      Timeout: !Ref Timeout
+      PackageType: !Ref PackageType
+      ReservedConcurrentExecutions: !Ref ReservedConcurrentExecutions
+      Handler: !Ref LambdaHandlerPath
+      Code:
+        ZipFile:
+          "exports.handler = function(event, context){\n
+            var sample = sample;"
+      TracingConfig:
+        Mode: Active
+      Role:
+        Fn::GetAtt:
+          - LambdaRole
+          - Arn
+      Environment:
+        Variables:
+          ENV:
+            Fn::Sub: ${EnvName}
+          TZ: UTC
+
+Outputs:
+  LambdaRoleARN:
+    Description: Role for Lambda execution.
+    Value:
+      Fn::GetAtt:
+        - LambdaRole
+        - Arn
+    Export:
+      Name:
+        Fn::Sub: LambdaRole
+  LambdaFunctionName:
+    Value:
+      Ref: LambdaFunction
+  LambdaFunctionARN:
+    Description: Lambda function ARN.
+    Value:
+      Fn::GetAtt:
+        - LambdaFunction
+        - Arn
+    Export:
+      Name:
+        Fn::Sub: LambdaARN-${EnvName}

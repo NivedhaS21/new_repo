@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template to create Amazon Elastic Container Registry (Amazon ECR) Repository.
+
+Parameters:
+  RepoName:
+    Description: The name to use for the repository. If you don't specify a name, AWS CloudFormation generates a unique physical ID and uses that ID for the repository name
+    Type: String
+  AccountID:
+    Description: The AWS Account ID of the IAM User which is required in Repository Policy Text. 
+    Type: String
+  IAMUser:
+    Description: The name of IAM User which is required in Repository Policy Text.
+    Type: String
+
+Resources:
+  MyECRRepository: 
+    Type: AWS::ECR::Repository
+    Properties: 
+      EmptyOnDelete: False
+      # EncryptionConfiguration: 
+      ImageScanningConfiguration: 
+        ScanOnPush: true            #  The setting that determines whether images are scanned after being pushed to a repository.
+      ImageTagMutability: 'MUTABLE' #  If IMMUTABLE is specified, all image tags within the repository will be immutable which will prevent them from being overwritten.
+      # LifecyclePolicy: 
+      Tags: 
+          - Key: Name
+            Value: !Ref RepoName
+      RepositoryName: !Ref RepoName
+      RepositoryPolicyText: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Sid: AllowPushPull
+            Effect: Allow
+            Principal: 
+              AWS: 
+                - !Sub "arn:aws:iam::${AccountID}:user/${IAMUser}"
+            Action: 
+              - "ecr:GetDownloadUrlForLayer"
+              - "ecr:BatchGetImage"
+              - "ecr:BatchCheckLayerAvailability"
+              - "ecr:PutImage"
+              - "ecr:InitiateLayerUpload"
+              - "ecr:UploadLayerPart"
+              - "ecr:CompleteLayerUpload"
+
+Outputs:    
+  RepoArn:
+    Value: !GetAtt MyECRRepository.Arn   

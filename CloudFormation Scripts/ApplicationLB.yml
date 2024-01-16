@@ -1,0 +1,152 @@
+# A CloudFormation template to create an Application Load Balancer in the user selected VPC, user selected subnet via parameters along with the user selected security group attached to it.
+
+#This template creates a target group of HTTP/HTTPS protocol in which there are health checks of the instances attached to ALB and a Listener which connects Load Balancer and the target group.
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template to create the Application Load Balancer in a VPC
+Parameters:
+  SourceMarket:
+    AllowedValues:
+      - Market1
+      - Market2
+      - Market3
+    Default: Market3
+    Description: Source market
+    Type: String
+  EnvironmentValue:
+    AllowedValues:
+      - preprod
+      - dev
+      - pt
+      - prod
+    Default: dev
+    Description: Type of the environment
+    Type: String
+  TechnicalOwner:
+    AllowedValues:
+      - Name1
+      - Name2
+    Default: Name1
+    Description: Technical Owner
+    Type: String
+  Application:
+    AllowedValues:
+      - FrameUp
+    Default: FrameUp
+    Description: Application Name
+    Type: String
+  BusinessUnit:
+    AllowedValues:
+      - 'null'
+    Default: 'null'
+    Description: Business Unit
+    Type: String
+  Compliance:
+    AllowedValues:
+      - 'null'
+    Default: 'null'
+    Description: Compliance
+    Type: String
+  Partition:
+    Description: Delimiter for partition
+    Type: String
+    Default: '-'
+  VPC:
+    Description: The identifier of the virtual private cloud (VPC). If the target is a Lambda function, this parameter does not apply.
+    Type: AWS::EC2::VPC::Id
+  InstanceId1: 
+    Description: Select the Instance ids in which you want to connect loadbalancer
+    Type: AWS::EC2::Instance::Id
+  InstanceId2: 
+    Description: Select the Instance ids in which you want to connect loadbalancer
+    Type: AWS::EC2::Instance::Id
+  Subnets:
+    Description: Choose which subnets the Application Load Balancer should be deployed to
+    Type: List<AWS::EC2::Subnet::Id>
+  SecurityGroup:
+    Description: Select the Security Group to apply to the Application Load Balancer
+    Type: List<AWS::EC2::SecurityGroup::Id>
+  
+
+Resources:
+  ApplicationTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      IpAddressType: ipv4 
+      Matcher:
+        HttpCode: '200'
+      Port: 80
+      Protocol: HTTP
+      Targets:
+        - Id: !Ref InstanceId1
+          Port: 80
+        - Id: !Ref InstanceId2
+          Port: 80
+      TargetType: instance
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - !Ref SourceMarket
+              - !Ref Partition
+              - !Ref EnvironmentValue
+              - !Ref Partition
+              - ApplicationTargetGroup
+
+  ALBListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ApplicationTargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  ApplicationLoadBalancer:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Scheme: internet-facing
+      Type: application
+      Subnets: !Ref Subnets
+      SecurityGroups: !Ref SecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - !Ref SourceMarket
+              - !Ref Partition
+              - !Ref EnvironmentValue
+              - !Ref Partition
+              - ApplicationLoadBalancer
+        - Key: Technical Owner
+          Value: !Ref TechnicalOwner
+        - Key: Application
+          Value: !Ref Application
+        - Key: Environment
+          Value: !Ref EnvironmentValue
+        - Key: Tier
+          Value: Application
+        - Key: Business Unit
+          Value: !Ref BusinessUnit
+        - Key: Compliance
+          Value: !Ref Compliance
+          
+Outputs:
+  LoadBalancer:
+    Description: LoadBalancer Name
+    Value: !Ref ApplicationLoadBalancer
+    Export:
+      Name: ApplicationLoadBalancer
+  ApplicationTargetGroup:
+    Description: TargetGroup Name of application Load Balancer
+    Value: !Ref ApplicationTargetGroup
+    Export:
+      Name: ApplicationTargetGroup

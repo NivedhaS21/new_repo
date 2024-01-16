@@ -1,0 +1,36 @@
+Resources:
+  myDNSRecordHostedZone: 
+    Type: "AWS::Route53::HostedZone"
+    Properties: 
+      HostedZoneConfig: 
+        Comment: 'My hosted zone for example.com'
+      Name: 'sample.nikhilrajvakapalli.co'
+
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0a0f1259dd1c90938
+      InstanceType: t2.micro
+
+  # myDNSRecord:
+  #   Type: AWS::Route53::RecordSet
+  #   DependsOn: myDNSRecordHostedZone
+  #   Properties:
+  #     HostedZoneName: !Ref 'myDNSRecordHostedZone' 
+  #     Comment: DNS name for my instance.
+  #     Name: !Sub "${Ec2Instance}.${AWS::Region}.${myDNSRecordHostedZone}"
+  #     Type: A
+  #     TTL: 900
+  #     ResourceRecords:
+  #     - !GetAtt Ec2Instance.PublicIp
+Outputs:
+  HostedZoneId:
+    Value: !Ref myDNSRecordHostedZone
+    Description: "ID of the created Route 53 Hosted Zone"
+    Export:
+      Name: myDNSRecordHostedZone
+
+  Ec2InstancePublicIpExportName:
+    Value: !GetAtt Ec2Instance.PublicIp
+    Export:
+      Name: Ec2InstancePublicIpExportName

@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  ClusterName:
+    Type: String
+    Description: Name for the ECS cluster
+
+  ServiceName:
+    Type: String
+    Description: Name for the ECS service
+
+  TaskDefinition:
+    Type: String
+    Description: ARN of the ECS task definition
+
+  DesiredCount:
+    Type: Number
+    Description: Desired number of tasks to run in the service
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID for the ECS cluster
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: List of subnet IDs for the ECS cluster
+
+  SecurityGroupIds:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+    Description: List of security group IDs for the ECS service
+
+  ContainerName:
+    Type: String
+    Description: Name for the ECS container
+
+  ContainerImage:
+    Type: String
+    Description: Docker image for the ECS container
+
+  ContainerPort:
+    Type: Number
+    Description: Port on which the ECS container listens
+
+Resources:
+  ECSCluster:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      ClusterName: !Ref ClusterName
+
+  ECSService:
+    Type: 'AWS::ECS::Service'
+    Properties:
+      Cluster: !Ref ECSCluster
+      ServiceName: !Ref ServiceName
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: EC2
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets: !Ref SubnetIds
+          SecurityGroups: !Ref SecurityGroupIds
+
+  ECSTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      Family: !Ref ServiceName
+      ContainerDefinitions:
+        - Name: !Ref ContainerName
+          Image: !Ref ContainerImage
+          PortMappings:
+            - ContainerPort: !Ref ContainerPort
+
+Outputs:
+  ClusterOutput:
+    Description: ECS Cluster Name
+    Value: !Ref ECSCluster
+
+  ServiceOutput:
+    Description: ECS Service Name
+    Value: !Ref ECSService
+
+  TaskDefinitionOutput:
+    Description: ECS Task Definition ARN
+    Value: !Ref ECSTaskDefinition

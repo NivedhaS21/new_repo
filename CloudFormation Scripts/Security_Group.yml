@@ -1,0 +1,278 @@
+# A CloudFormation template to create 4 security groups for different AWS resources like EC2, LoadBalancer and RDS in the user selected VPC. We can change the Inbound and Outbound rules of the security groups as we need
+
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: This Template creates Security Groups for all required resources
+Parameters:
+  SourceMarket:
+    AllowedValues:
+      - Market1
+      - Market2
+      - Market3
+    Default: Market3
+    Description: Source market
+    Type: String
+  EnvironmentValue:
+    AllowedValues:
+      - preprod
+      - dev
+      - pt
+      - prod
+    Default: dev
+    Description: Type of the environment
+    Type: String
+  TechnicalOwner:
+    AllowedValues:
+      - Name1
+      - Name2
+    Default: Name1
+    Description: Technical Owner
+    Type: String
+  Application:
+    AllowedValues:
+      - FrameUp
+    Default: FrameUp
+    Description: Application Name
+    Type: String
+  BusinessUnit:
+    AllowedValues:
+      - 'null'
+    Default: 'null'
+    Description: Business Unit
+    Type: String
+  Compliance:
+    AllowedValues:
+      - 'null'
+    Default: 'null'
+    Description: Compliance
+    Type: String
+  Partition:
+    Description: Delimiter for partition
+    Type: String
+    Default: '-'
+
+Resources:
+  ELBSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Description: Security group for Load Balancer
+    Properties:
+      GroupName: !Join 
+        - ''
+        - - !Ref SourceMarket
+          - !Ref Partition
+          - !Ref EnvironmentValue
+          - !Ref Partition
+          - sg
+          - !Ref Partition
+          - LB
+      GroupDescription: Security group for Load Balancer
+      VpcId: !ImportValue VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - !Ref SourceMarket
+              - !Ref Partition
+              - !Ref EnvironmentValue
+              - !Ref Partition
+              - sg
+              - !Ref Partition
+              - LB
+        - Key: Technical Owner
+          Value: !Ref TechnicalOwner
+        - Key: Application
+          Value: !Ref Application
+        - Key: Environment
+          Value: !Ref EnvironmentValue
+        - Key: Tier
+          Value: Application
+        - Key: Business Unit
+          Value: !Ref BusinessUnit
+        - Key: Compliance
+          Value: !Ref Compliance
+  
+  ApplicationSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Description: Security group for Applications
+    Properties:
+      GroupName: !Join 
+        - ''
+        - - !Ref SourceMarket
+          - !Ref Partition
+          - !Ref EnvironmentValue
+          - !Ref Partition
+          - sg
+          - !Ref Partition
+          - Application
+      GroupDescription: App Instance SG Rules
+      VpcId: !ImportValue VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          SourceSecurityGroupId: !Ref ELBSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - !Ref SourceMarket
+              - !Ref Partition
+              - !Ref EnvironmentValue
+              - !Ref Partition
+              - sg
+              - !Ref Partition
+              - Application
+        - Key: Technical Owner
+          Value: !Ref TechnicalOwner
+        - Key: Application
+          Value: !Ref Application
+        - Key: Environment
+          Value: !Ref EnvironmentValue
+        - Key: Tier
+          Value: Application
+        - Key: Business Unit
+          Value: !Ref BusinessUnit
+        - Key: Compliance
+          Value: !Ref Compliance
+  
+  DatabaseSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Description: Security group for Database
+    Properties:
+      GroupName: !Join 
+        - ''
+        - - !Ref SourceMarket
+          - !Ref Partition
+          - !Ref EnvironmentValue
+          - !Ref Partition
+          - sg
+          - !Ref Partition
+          - Database
+      GroupDescription: Security group for Database
+      VpcId: !ImportValue VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '3306'
+          ToPort: '3306'
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - !Ref SourceMarket
+              - !Ref Partition
+              - !Ref EnvironmentValue
+              - !Ref Partition
+              - sg
+              - !Ref Partition
+              - DB
+        - Key: Technical Owner
+          Value: !Ref TechnicalOwner
+        - Key: Application
+          Value: !Ref Application
+        - Key: Environment
+          Value: !Ref EnvironmentValue
+        - Key: Tier
+          Value: Application
+        - Key: Business Unit
+          Value: !Ref BusinessUnit
+        - Key: Compliance
+          Value: !Ref Compliance
+
+  WebSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Description: Security group for Web
+    Properties:
+      GroupName: !Join 
+        - ''
+        - - !Ref SourceMarket
+          - !Ref Partition
+          - !Ref EnvironmentValue
+          - !Ref Partition
+          - sg
+          - !Ref Partition
+          - web
+      GroupDescription: App Instance SG Rules
+      VpcId: !ImportValue VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - !Ref SourceMarket
+              - !Ref Partition
+              - !Ref EnvironmentValue
+              - !Ref Partition
+              - sg
+              - !Ref Partition
+              - web
+        - Key: Technical Owner
+          Value: !Ref TechnicalOwner
+        - Key: Application
+          Value: !Ref Application
+        - Key: Environment
+          Value: !Ref EnvironmentValue
+        - Key: Tier
+          Value: Application
+        - Key: Business Unit
+          Value: !Ref BusinessUnit
+        - Key: Compliance
+          Value: !Ref Compliance
+  
+Outputs:
+  ELBSecurityGroup:
+    Description: Name of the Load Balancer security group created
+    Value: !GetAtt 
+      - ELBSecurityGroup
+      - GroupId
+    Export:
+      Name: ELBSecurityGroup
+  ApplicationSecurityGroup:
+    Description: Name of the Application security group created
+    Value: !GetAtt 
+      - ApplicationSecurityGroup
+      - GroupId
+    Export:
+      Name: ApplicationSecurityGroup
+  DatabaseSecurityGroup:
+    Description: Name of the Database security group created
+    Value: !GetAtt 
+      - DatabaseSecurityGroup
+      - GroupId
+    Export:
+      Name: DatabaseSecurityGroup
+  WebSecurityGroup:
+    Description: Name of the Web security group created
+    Value: !GetAtt 
+      - WebSecurityGroup
+      - GroupId
+    Export:
+      Name: WebSecurityGroup

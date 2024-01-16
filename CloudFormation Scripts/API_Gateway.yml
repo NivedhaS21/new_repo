@@ -1,0 +1,146 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS API Gateway with a Lambda Integration
+
+Parameters:
+  lambdaFunctionArn:
+    Type: "String"
+    Description: Lambda function Arn
+  apiStageName:
+    Type: "String"
+    Description: API Staging Name. (Recommend to keep default)
+    Default: "v1"
+  apiResourcePath:
+    Type: "String"
+    Description: Resource Path for API.
+    Default: "hello"
+  ApiKeyRequired:
+    Type: "String"
+    Description: Indicates whether the method requires clients to submit a valid API key.
+    Default: true
+  HttpMethod:
+    Type: "String"
+    Description: The HTTP method that clients use to call this method.
+    Default: ANY #like POST, GET etc.
+  AuthorizationType:
+    Type: "String"
+    Description: The method's authorization type. Valid values are NONE for open access, AWS_IAM for using AWS IAM permissions, CUSTOM for using a custom authorizer, or COGNITO_USER_POOLS for using a Cognito user pool.
+    Default: NONE
+  IntegrationType:
+    Type: "String"
+    Description: The type of backend that your method is running, such as HTTP or MOCK. All of the valid values, of the type property for the Integration are HTTP, HTTP_PROXY, AWS, AWS_PROXY, or Mock integration
+    Default: AWS_PROXY
+  IntegrationHttpMethod:
+    Type: "String"
+    Description: The integration's HTTP method type. For the Type property, if you specify MOCK, this property is optional. For all other types, you must specify this property.
+    Default: POST
+  
+
+Resources:
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Description: An API Gateway for Lambda APIs
+      FailOnWarnings: true
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Name: !Join ["", [{"Ref": "AWS::StackName"}, "-api"]]
+
+  ProxyResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: !Ref "apiResourcePath"
+
+  ProxyResourceANY:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref ProxyResource
+      HttpMethod: !Ref HttpMethod
+      ApiKeyRequired: !Ref ApiKeyRequired
+      AuthorizationType: !Ref AuthorizationType
+      OperationName: !Ref "apiResourcePath"
+      Integration:
+        Type: !Ref IntegrationType
+        IntegrationHttpMethod: !Ref IntegrationHttpMethod
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaFunctionArn}/invocations' 
+        # For example, a Lambda function URI follows this form: arn:aws:apigateway:region:lambda:path/path. The path is usually in the form /2015-03-31/functions/LambdaFunctionARN/invocations. For more information, see the uri property of the Integration resource in the Amazon API Gateway REST API Reference.
+
+  ApiGatewayModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      ContentType: 'application/json'
+      RestApiId: !Ref ApiGatewayRestApi
+      Schema: {}
+
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      DeploymentId: !Ref ApiGatewayDeployment
+      Description: Lambda API Stage v1
+      RestApiId: !Ref ApiGatewayRestApi
+      StageName: !Ref "apiStageName"
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: ProxyResourceANY
+    Properties:
+      Description: Lambda API Deployment
+      RestApiId: !Ref ApiGatewayRestApi
+
+  ApiGatewayIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ''
+            Effect: 'Allow'
+            Principal:
+              Service:
+                - 'apigateway.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+        - PolicyName: LambdaAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action: 'lambda:*'
+                Resource: !Ref lambdaFunctionArn
+
+  ApiKey: 
+    Type: AWS::ApiGateway::ApiKey
+    Properties: 
+      Name: !Join ["", [{"Ref": "AWS::StackName"}, "-apikey"]]
+      Description: !Join ["", [{"Ref": "AWS::StackName"}, "api key"]]
+      Enabled: true
+      GenerateDistinctId: false
+
+  ApiUsagePlan:
+    Type: "AWS::ApiGateway::UsagePlan"
+    DependsOn: ApiGatewayStage
+    Properties:
+      ApiStages: 
+      - ApiId: !Ref ApiGatewayRestApi
+        Stage: !Ref "apiStageName"    
+      Description: !Join [" ", [{"Ref": "AWS::StackName"}, "usage plan"]]
+      UsagePlanName: !Join ["", [{"Ref": "AWS::StackName"}, "-usage-plan"]]
+
+  ApiUsagePlanKey:
+    Type: "AWS::ApiGateway::UsagePlanKey"
+    Properties:
+      KeyId: !Ref ApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref ApiUsagePlan
+
+Outputs:
+  ApiUrl:
+    Value: !Sub
+      - https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/${apiStageName}
+      - ApiId: !Ref ApiGatewayRestApi
+        StageName: !Ref ApiGatewayStage

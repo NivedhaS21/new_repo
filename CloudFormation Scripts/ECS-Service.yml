@@ -32,7 +32,7 @@ Parameters:
     Description: How much memory in megabytes to give the container
   LaunchType:
     Type: String
-    Allowed values: 
+    AllowedValues: 
       - EC2 
       - FARGATE
       - EXTERNAL
@@ -101,7 +101,7 @@ Resources:
         MaximumPercent: 200
         MinimumHealthyPercent: 75
       DesiredCount: !Ref 'DesiredCount'
-      LaunchType: 
+      LaunchType: !Ref LaunchType
       TaskDefinition: !Ref 'TaskDefinition'
 
       LoadBalancers:
